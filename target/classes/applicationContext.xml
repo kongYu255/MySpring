@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans>
+
+    <bean id="user"  class="model.User" init-method="init">
+        <property name="name" value="zhangsan" />
+        <property name="password" value="123456" />
+    </bean>
+
+    <bean id="myBeanPostProcessor" class="model.MyBeanPostProcessor" />
+
+    <bean id="userDao" class="model.dao.UserDao" />
+
+    <bean id="userService" class="model.service.UserService">
+        <property name="userDao" ref="userDao" />
+    </bean>
+
+
+    <bean id="x" class="model.X" >
+        <property name="y" ref="y" />
+    </bean>
+
+    <bean id="y" class="model.Y">
+        <property name="z" ref="z" />
+    </bean>
+
+    <bean id="z" class="model.Z">
+        <property name="x" ref="x" />
+    </bean>
+</beans>
