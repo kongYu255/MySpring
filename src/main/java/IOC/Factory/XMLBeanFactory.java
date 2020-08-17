@@ -5,8 +5,6 @@ import IOC.BeanPostProcessor;
 import IOC.BeanReference;
 import IOC.PropertyValue;
 import IOC.XML.XMLBeanDefinitionReader;
-
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +26,9 @@ public class XMLBeanFactory implements BeanFactory {
 
     // 存放实现了BeanPostProcessor接口的类
     private List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
+
+    // 存放当前正在创建的Bean
+    private Map<String, Object> onCreateBean = new ConcurrentHashMap<>();
 
     public XMLBeanFactory(String XMLPath) throws Exception {
         beanDefinitionReader = new XMLBeanDefinitionReader();
@@ -93,8 +94,12 @@ public class XMLBeanFactory implements BeanFactory {
     // 反射创建bean，并且进行属性注入
     private Object createBean(String beanId,BeanDefinition beanDefinition) throws IllegalAccessException, InstantiationException {
         Object object = beanDefinition.getBeanClass().newInstance();
+        // 在反射创建之后把该对象放入onCreateBean中，表示该对象正在创建中
+        onCreateBean.put(beanId,object);
         setPropertyValue(beanId,object,beanDefinition);
 
+        // 属性注入后把对象从onCreateBean中移除
+        onCreateBean.remove(beanId);
         return object;
     }
 
@@ -107,9 +112,10 @@ public class XMLBeanFactory implements BeanFactory {
                 // 如果是对象注入
                 if(value instanceof BeanReference) {
                     BeanReference beanReference = (BeanReference) value;
+
                     value = earlySingletonObjects.get(beanReference.getName());
-                    // 循环依赖检查，如果有循环依赖则提前暴露
-                    if(isDependent()) {
+                    // 循环依赖检查，如果有循环依赖则提前暴露bean
+                    if(isDependent(beanReference.getName())) {
                         earlySingletonObjects.put(beanId, bean);
                     }
                     if(value == null) {
@@ -133,8 +139,11 @@ public class XMLBeanFactory implements BeanFactory {
     }
 
     // 判断类是否有循环依赖
-    public boolean isDependent() {
-        return true;
+    public boolean isDependent(String name) {
+        if(onCreateBean.containsKey(name)) {
+            return true;
+        }
+        return false;
     }
 
     // 调用bean的初始化方法，并且插入执行实现了BeanPostProcessor接口的类的postProcessBeforeInitialization方法

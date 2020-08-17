@@ -14,6 +14,7 @@ public class ClassPathXMLApplicationContext {
         beanFactory = new XMLBeanFactory(configPath);
     }
 
+    // bean工厂，生产bean并返回
     private BeanFactory beanFactory;
 
     public Object getBean(String beanId) {
